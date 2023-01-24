@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS 
-    users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tg_id INTEGER NOT NULL UNIQUE,
-        active INT NOT NULL
-    );

@@ -1,9 +1,15 @@
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
-                           KeyboardButton, ReplyKeyboardMarkup)
+                           KeyboardButton, ReplyKeyboardMarkup,
+                           ReplyKeyboardRemove)
 
 reg_button = "Регистрация"
 menu_button = "Меню"
 button = "Какая-то кнопка"
+
+
+def remove_keyboard():
+    markup = ReplyKeyboardRemove()
+    return markup
 
 
 def reg_keyboard():
