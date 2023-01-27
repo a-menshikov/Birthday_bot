@@ -1,10 +1,12 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
-from data.services import create_new_user, is_user_exist_in_base
+from data.services import (create_new_birthday_note, create_new_user,
+                           get_user_base_id, is_user_exist_in_base)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        main_menu_keyboard, menu_button, menu_reply_keyboard,
                        reg_button, reg_keyboard)
 from states.states import NewBirthdayStates
+from .validators import validate_name, validate_comment, validate_birthday
 
 
 async def starter(message: types.Message):
@@ -42,35 +44,65 @@ async def menu_sendler(message: types.Message):
 async def new_birthday(message: types.Message):
     """Добавление новой записи о дне рождения."""
     await NewBirthdayStates.name.set()
-    await message.answer("Введиме имя. Лимит 200 символов",
+    await message.answer("Введиме имя. Лимит 200 символов.",
                          reply_markup=canсel_keyboard())
 
 
 async def name_input(message: types.Message, state: FSMContext):
     """Ввод имени для новой записи о дне рождения."""
+    name = message.text
+    if not validate_name(name):
+        await message.answer(
+            'Что то не так с введенным именем.\n'
+            'Имя должно состоять из цифр или '
+            'букв русского/латинского алфавитов '
+            'и быть не более 200 символов.'
+        )
+        return
     async with state.proxy() as data:
         data['name'] = message.text
     await NewBirthdayStates.next()
-    await message.answer("Введите дату рождения в формате ДД.ММ.ГГГГ",
+    await message.answer("Введите дату рождения в формате ДД.ММ",
                          reply_markup=canсel_keyboard())
 
 
 async def birth_date_input(message: types.Message, state: FSMContext):
     """Ввод даты рождения для новой записи о дне рождения."""
+    birthday = message.text
+    if not validate_birthday(birthday):
+        await message.answer(
+            'Что то не так с введенной датой.\n'
+            'Сообщение дожно быть в формате ДД.ММ '
+            '(например 13.04 или 29.02) и быть реальной датой.'
+        )
+        return
+    day, month = map(int, message.text.split('.'))
     async with state.proxy() as data:
-        data['birth_date'] = message.text
+        data['day_of_birth'] = day
+        data['month_of_birth'] = month
+
     await NewBirthdayStates.next()
-    await message.answer("Введите комментарий к записи.",
+    await message.answer("Введите комментарий к записи. Лимит 200 символов.",
                          reply_markup=canсel_keyboard())
 
 
 async def comment_input(message: types.Message, state: FSMContext):
     """Ввод коммента для новой записи о дне рождения."""
+    comment = message.text
+    if not validate_comment(comment):
+        await message.answer(
+            'Что то не так с введенным комментарием.\n'
+            'Текст должен состоять из цифр или '
+            'букв русского/латинского алфавитов '
+            'и быть не более 200 символов.'
+        )
+        return
     async with state.proxy() as data:
         data['comment'] = message.text
-    async with state.proxy() as data:
-        # TODO дописать запись в базу
-        await message.answer(data, reply_markup=menu_reply_keyboard())
+        data['owner_id'] = get_user_base_id(message.from_user.id)
+        create_new_birthday_note(data)
+        await message.answer("Запись создана",
+                             reply_markup=menu_reply_keyboard())
     await state.finish()
 
 
