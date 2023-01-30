@@ -44,8 +44,24 @@ def create_new_birthday_note(data: dict) -> None:
     session = db_session()
     new_note = Birthday(owner_id=data['owner_id'],
                         name=data['name'],
+                        row_birth_date=data['row_birth_date'],
                         day_of_birth=data['day_of_birth'],
                         month_of_birth=data['month_of_birth'],
                         comment=data['comment'])
     session.add(new_note)
     session.commit()
+
+
+def view_users_birthday_notes(telegram_id: int) -> None:
+    """Запрос из базы всех записей о ДР конкретного пользователя
+    Возвращает список кортежей."""
+    session = db_session()
+    user_id = get_user_base_id(telegram_id)
+    notes = session.query(
+        Birthday.id,
+        Birthday.name,
+        Birthday.row_birth_date,
+        Birthday.comment).where(
+        Birthday.owner_id == user_id).all()
+    session.commit()
+    return notes

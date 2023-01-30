@@ -2,8 +2,8 @@ from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
 
 reg_button = "Регистрация"
-menu_button = "Меню"
 add_new_note = "Добавить запись ДР"
+my_birthdays_button = "Мои записи о ДР"
 cancel_button = "Отмена"
 
 
@@ -18,15 +18,10 @@ def reg_keyboard():
     return markup
 
 
-def main_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
-    markup.add(KeyboardButton(menu_button))
-    return markup
-
-
 def menu_reply_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
     markup.add(KeyboardButton(add_new_note))
+    markup.add(KeyboardButton(my_birthdays_button))
     return markup
 
 

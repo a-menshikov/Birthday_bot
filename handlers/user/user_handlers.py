@@ -1,12 +1,14 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 from data.services import (create_new_birthday_note, create_new_user,
-                           get_user_base_id, is_user_exist_in_base)
+                           get_user_base_id, is_user_exist_in_base,
+                           view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
-                       main_menu_keyboard, menu_button, menu_reply_keyboard,
-                       reg_button, reg_keyboard)
+                       menu_reply_keyboard, my_birthdays_button, reg_button,
+                       reg_keyboard)
 from states.states import NewBirthdayStates
-from .validators import validate_name, validate_comment, validate_birthday
+
+from .validators import validate_birthday, validate_comment, validate_name
 
 
 async def starter(message: types.Message):
@@ -15,7 +17,7 @@ async def starter(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Привет. Этот бот умеет напоминать о ДР",
-                             reply_markup=main_menu_keyboard())
+                             reply_markup=menu_reply_keyboard())
     else:
         await message.answer("Привет. Этот бот умеет напоминать о ДР."
                              "Жми кнопку и начнём!",
@@ -28,17 +30,12 @@ async def registration(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Вы уже зарегистрированы. Воспользуйтесь меню",
-                             reply_markup=main_menu_keyboard())
+                             reply_markup=menu_reply_keyboard())
     else:
         create_new_user(telegram_id)
         await message.answer("Welcome. Полный функционал доступен."
                              " Воспользуйтесь меню",
-                             reply_markup=main_menu_keyboard())
-
-
-async def menu_sendler(message: types.Message):
-    await message.answer("Вот такое щаз меню",
-                         reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard())
 
 
 async def new_birthday(message: types.Message):
@@ -80,6 +77,7 @@ async def birth_date_input(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['day_of_birth'] = day
         data['month_of_birth'] = month
+        data['row_birth_date'] = birthday
 
     await NewBirthdayStates.next()
     await message.answer("Введите комментарий к записи. Лимит 200 символов.",
@@ -118,14 +116,21 @@ async def cancel_add_note(message: types.Message, state: FSMContext):
                              reply_markup=menu_reply_keyboard())
 
 
+async def my_birthdays(message: types.Message):
+    """Вывод информации о ДР_записях пользователя."""
+    telegram_id = message.from_user.id
+    notes = view_users_birthday_notes(telegram_id)
+    await message.answer(notes,
+                         reply_markup=menu_reply_keyboard())
+
+
 def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(starter, commands=["start", "help"])
     dp.register_message_handler(registration, text=reg_button)
-    dp.register_message_handler(menu_sendler, text=menu_button)
+    dp.register_message_handler(my_birthdays, text=my_birthdays_button)
     dp.register_message_handler(cancel_add_note, text=cancel_button, state='*')
     dp.register_message_handler(new_birthday, text=add_new_note, state=None)
     dp.register_message_handler(name_input, state=NewBirthdayStates.name)
     dp.register_message_handler(birth_date_input,
                                 state=NewBirthdayStates.birth_date)
     dp.register_message_handler(comment_input, state=NewBirthdayStates.comment)
-    dp.register_message_handler(starter, commands=["start", "help"])

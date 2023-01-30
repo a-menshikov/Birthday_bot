@@ -21,6 +21,7 @@ class Birthday(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     owner_id = Column(Integer, ForeignKey('users.id'))
     name = Column(Text, nullable=False)
+    row_birth_date = Column(Text, nullable=False)
     day_of_birth = Column(Integer, nullable=False)
     month_of_birth = Column(Integer, nullable=False)
     comment = Column(Text)
