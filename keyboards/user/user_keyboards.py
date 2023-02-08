@@ -2,8 +2,8 @@ from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
 
 reg_button = "Регистрация"
-add_new_note = "Добавить запись ДР"
-my_birthdays_button = "Мои записи о ДР"
+add_new_note = "Добавить ДР"
+my_birthdays_button = "Мои ДР"
 cancel_button = "Отмена"
 
 
