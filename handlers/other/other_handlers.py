@@ -10,7 +10,7 @@ async def unknown_message(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Моя твоя не понимать",
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
     else:
         await message.answer("Моя твоя не понимать. "
                              "Давай-ка лучше зарегистрируемся?",

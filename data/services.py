@@ -1,6 +1,8 @@
+import csv
 from .db_loader import db_session
 from .models import User, Birthday, UserSubscribe
 from sqlalchemy.sql import exists
+from loader import ADMIN
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
@@ -11,6 +13,22 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
     if check:
         return True
     return False
+
+
+def input_c_birthdays_in_base():
+    """Загрузить в базу данные о ДР в Ц."""
+    path = 'data/Ц.csv'
+    session = db_session()
+
+    with open(path, encoding='1251', mode='r') as file:
+        csv_read = csv.DictReader(file, delimiter=';')
+        for i in csv_read:
+            pass
+
+
+def is_admin(telegram_id: int):
+    """Проверка на админа."""
+    return telegram_id == ADMIN
 
 
 def get_user_base_id(telegram_id: int) -> bool:

@@ -17,7 +17,7 @@ async def starter(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Привет. Этот бот умеет напоминать о ДР",
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
     else:
         await message.answer("Привет. Этот бот умеет напоминать о ДР."
                              "Жми кнопку и начнём!",
@@ -30,12 +30,12 @@ async def registration(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Вы уже зарегистрированы. Воспользуйтесь меню",
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
     else:
         create_new_user(telegram_id)
         await message.answer("Welcome. Полный функционал доступен."
                              " Воспользуйтесь меню",
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
 
 
 async def new_birthday(message: types.Message):
@@ -87,6 +87,7 @@ async def birth_date_input(message: types.Message, state: FSMContext):
 async def comment_input(message: types.Message, state: FSMContext):
     """Ввод коммента для новой записи о дне рождения."""
     comment = message.text
+    telegram_id = message.from_user.id
     if not validate_comment(comment):
         await message.answer(
             'Что то не так с введенным комментарием.\n'
@@ -97,23 +98,24 @@ async def comment_input(message: types.Message, state: FSMContext):
         return
     async with state.proxy() as data:
         data['comment'] = message.text
-        data['owner_id'] = get_user_base_id(message.from_user.id)
+        data['owner_id'] = get_user_base_id(telegram_id)
         create_new_birthday_note(data)
         await message.answer("Запись создана",
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
     await state.finish()
 
 
 async def cancel_add_note(message: types.Message, state: FSMContext):
     """Отмена добавления новой записи о дне рождения."""
     current_state = await state.get_state()
+    telegram_id = message.from_user.id
     if current_state is not None:
         await state.finish()
         await message.answer('Операция отменена',
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
     else:
         await message.answer('Так ведь нечего отменять',
-                             reply_markup=menu_reply_keyboard())
+                             reply_markup=menu_reply_keyboard(telegram_id))
 
 
 async def my_birthdays(message: types.Message):
@@ -121,7 +123,7 @@ async def my_birthdays(message: types.Message):
     telegram_id = message.from_user.id
     notes = view_users_birthday_notes(telegram_id)
     await message.answer(notes,
-                         reply_markup=menu_reply_keyboard())
+                         reply_markup=menu_reply_keyboard(telegram_id))
 
 
 def register_user_handlers(dp: Dispatcher):
