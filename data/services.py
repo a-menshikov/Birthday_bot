@@ -1,8 +1,9 @@
 import csv
 from .db_loader import db_session
-from .models import User, Birthday, UserSubscribe, Birthday_CF
+from .models import User, Birthday, UserSubscribe, Birthday_CF, Subscribe
 from sqlalchemy.sql import exists
 from loader import ADMIN, bot
+from config import private_sub, SUB_KIND
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
@@ -46,12 +47,42 @@ def is_admin(telegram_id: int):
     return telegram_id == ADMIN
 
 
-def get_user_base_id(telegram_id: int) -> bool:
+def all_sub_check(telegram_id: int) -> dict:
+    """Проверка состояния подписок."""
+    sub_status = {}
+
+    for sub in SUB_KIND.keys():
+        sub_status[sub] = False
+
+    session = db_session()
+    user_db_id = get_user_base_id(telegram_id)
+    user_subs = session.query(UserSubscribe.subscribe,
+                              Subscribe.name,
+                              ).join(Subscribe).filter(
+                                    UserSubscribe.user_id == user_db_id,
+                                    UserSubscribe.status == 1
+                                    ).all()
+
+    for user_sub in user_subs:
+        sub_status[user_sub[1]] = True
+
+    return sub_status
+
+
+def get_user_base_id(telegram_id: int) -> int:
     """Получить id пользователя в базе (таблица users)."""
     session = db_session()
     user_db_id = session.query(User.id).filter(
         User.telegram_id == telegram_id).one()[0]
     return user_db_id
+
+
+def get_sub_base_id(sub_kind: str) -> int:
+    """Получить id пользователя в базе (таблица users)."""
+    session = db_session()
+    sub_db_id = session.query(Subscribe.id).filter(
+        Subscribe.name == sub_kind).one()[0]
+    return sub_db_id
 
 
 def create_new_user(telegram_id: int) -> None:
@@ -60,14 +91,15 @@ def create_new_user(telegram_id: int) -> None:
     new_user = User(telegram_id=telegram_id)
     session.add(new_user)
     session.commit()
-    create_new_private_subscribe(telegram_id)
+    create_new_subscribe(telegram_id, private_sub)
 
 
-def create_new_private_subscribe(telegram_id: int) -> None:
-    """Создание приватной подписки для пользователя"""
+def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
+    """Создание подписки для пользователя"""
     session = db_session()
     user_id = get_user_base_id(telegram_id)
-    new_subscribe = UserSubscribe(user_id=user_id, subscribe=1, status=1)
+    sub_id = get_sub_base_id(sub_kind)
+    new_subscribe = UserSubscribe(user_id=user_id, subscribe=sub_id, status=1)
     session.add(new_subscribe)
     session.commit()
 

@@ -2,10 +2,10 @@ from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 from data.services import (create_new_birthday_note, create_new_user,
                            get_user_base_id, is_user_exist_in_base,
-                           view_users_birthday_notes)
+                           view_users_birthday_notes, all_sub_check)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        menu_reply_keyboard, my_birthdays_button, reg_button,
-                       reg_keyboard)
+                       reg_keyboard, subscribes, sub_keyboard, in_main_menu)
 from states.states import NewBirthdayStates
 
 from .validators import validate_birthday, validate_comment, validate_name
@@ -17,6 +17,19 @@ async def starter(message: types.Message):
     checker = is_user_exist_in_base(telegram_id)
     if checker:
         await message.answer("Привет. Этот бот умеет напоминать о ДР",
+                             reply_markup=menu_reply_keyboard(telegram_id))
+    else:
+        await message.answer("Привет. Этот бот умеет напоминать о ДР."
+                             "Жми кнопку и начнём!",
+                             reply_markup=reg_keyboard())
+
+
+async def main_menu(message: types.Message):
+    """В главное меню."""
+    telegram_id = message.from_user.id
+    checker = is_user_exist_in_base(telegram_id)
+    if checker:
+        await message.answer("Меню:",
                              reply_markup=menu_reply_keyboard(telegram_id))
     else:
         await message.answer("Привет. Этот бот умеет напоминать о ДР."
@@ -36,6 +49,14 @@ async def registration(message: types.Message):
         await message.answer("Welcome. Полный функционал доступен."
                              " Воспользуйтесь меню",
                              reply_markup=menu_reply_keyboard(telegram_id))
+
+
+async def my_subscribes(message: types.Message):
+    """Переход в меню подписок."""
+    telegram_id = message.from_user.id
+    sub_status = all_sub_check(telegram_id)
+    await message.answer("Ваши подписки.",
+                         reply_markup=sub_keyboard(sub_status))
 
 
 async def new_birthday(message: types.Message):
@@ -129,8 +150,10 @@ async def my_birthdays(message: types.Message):
 def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(starter, commands=["start", "help"])
     dp.register_message_handler(registration, text=reg_button)
+    dp.register_message_handler(main_menu, text=in_main_menu)
     dp.register_message_handler(my_birthdays, text=my_birthdays_button)
     dp.register_message_handler(cancel_add_note, text=cancel_button, state='*')
+    dp.register_message_handler(my_subscribes, text=subscribes)
     dp.register_message_handler(new_birthday, text=add_new_note, state=None)
     dp.register_message_handler(name_input, state=NewBirthdayStates.name)
     dp.register_message_handler(birth_date_input,
