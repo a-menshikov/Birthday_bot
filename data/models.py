@@ -28,6 +28,20 @@ class Birthday(Base):
     created_on = Column(Text, default=date.today)
 
 
+class Birthday_CF(Base):
+    """Запись о дне рождения для списка Ц."""
+    __tablename__ = 'birthdays_cf'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(Text, nullable=False)
+    row_birth_date = Column(Text, nullable=False)
+    day_of_birth = Column(Integer, nullable=False)
+    month_of_birth = Column(Integer, nullable=False)
+    year_of_birth = Column(Integer, nullable=False)
+    division = Column(Text)
+    position = Column(Text)
+    created_on = Column(Text, default=date.today)
+
+
 class Subscribe(Base):
     """Тип подписки на рассылку."""
     __tablename__ = 'subscribe_kind'

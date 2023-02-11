@@ -8,8 +8,8 @@ from handlers.admin import admin_handlers
 
 async def on_startup(_):
     """Выполняется при старте бота."""
-    create_db()
     await bot.send_message(ADMIN, 'Бот запущен')
+    await create_db()
 
 user_handlers.register_user_handlers(dp)
 admin_handlers.register_admin_handlers(dp)

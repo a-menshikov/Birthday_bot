@@ -1,8 +1,8 @@
 import csv
 from .db_loader import db_session
-from .models import User, Birthday, UserSubscribe
+from .models import User, Birthday, UserSubscribe, Birthday_CF
 from sqlalchemy.sql import exists
-from loader import ADMIN
+from loader import ADMIN, bot
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
@@ -15,15 +15,30 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
     return False
 
 
-def input_c_birthdays_in_base():
+async def input_c_birthdays_in_base():
     """Загрузить в базу данные о ДР в Ц."""
     path = 'data/Ц.csv'
-    session = db_session()
 
     with open(path, encoding='1251', mode='r') as file:
         csv_read = csv.DictReader(file, delimiter=';')
+        counter = 0
         for i in csv_read:
-            pass
+            data = {}
+            data['name'] = i['Сотрудник']
+            data['row_birth_date'] = i['Дата рождения']
+            data['division'] = i['Подразделение организации']
+            data['position'] = i['Должность']
+            b_date_tuple = tuple(map(int, i['Дата рождения'].split('.')))
+            data['day_of_birth'] = b_date_tuple[0]
+            data['month_of_birth'] = b_date_tuple[1]
+            data['year_of_birth'] = b_date_tuple[2]
+            try:
+                create_new_birthday_note_cf(data)
+                counter += 1
+            except Exception as error:
+                print(error)
+                continue
+        await bot.send_message(ADMIN, 'all ЦФ done')
 
 
 def is_admin(telegram_id: int):
@@ -68,6 +83,18 @@ def create_new_birthday_note(data: dict) -> None:
                         comment=data['comment'])
     session.add(new_note)
     session.commit()
+
+
+def create_new_birthday_note_cf(data: dict) -> None:
+    """Создание новой записи о дне рождения ЦФ."""
+    session = db_session()
+    check = session.query(Birthday_CF).filter(
+        Birthday_CF.name == data['name'],
+        Birthday_CF.row_birth_date == data['row_birth_date']).all()
+    if not check:
+        new_note = Birthday_CF(**data)
+        session.add(new_note)
+        session.commit()
 
 
 def view_users_birthday_notes(telegram_id: int) -> None:

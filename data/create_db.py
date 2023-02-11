@@ -1,8 +1,9 @@
-from .db_loader import Base, db_session, engine
-from .models import Subscribe
+from data.db_loader import Base, db_session, engine
+from data.models import Subscribe
+from data.services import input_c_birthdays_in_base
 
 
-def create_db():
+async def create_db():
     """Создание БД и наполнение ее предустановленными данными."""
     Base.metadata.create_all(engine)
     session = db_session()
@@ -14,3 +15,4 @@ def create_db():
                                       )
         session.add(private_subscribe)
         session.commit()
+    await input_c_birthdays_in_base()
