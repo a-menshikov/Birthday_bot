@@ -8,7 +8,7 @@ from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        in_main_menu, menu_reply_keyboard, my_birthdays_button,
                        reg_button, reg_keyboard, sub_keyboard, subscribes,
                        today_birthday)
-from loader import today_full_date
+from config import today_full_date
 from states.states import NewBirthdayStates
 
 from .validators import validate_birthday, validate_comment, validate_name
