@@ -10,6 +10,7 @@ cancel_button = "Отмена"
 in_main_menu = "В главное меню"
 admin_menu_button = "Меню админа"
 subscribes = "Подписки"
+today_birthday = "ДР сегодня"
 
 
 def remove_keyboard():
@@ -46,6 +47,7 @@ def menu_reply_keyboard(telegram_id: int):
     )
     markup.row(
         KeyboardButton(subscribes),
+        KeyboardButton(today_birthday),
     )
     if is_admin(telegram_id):
         markup.row(KeyboardButton(admin_menu_button),)

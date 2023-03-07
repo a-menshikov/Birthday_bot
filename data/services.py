@@ -2,7 +2,7 @@ import csv
 from .db_loader import db_session
 from .models import User, Birthday, UserSubscribe, Birthday_CF, Subscribe
 from sqlalchemy.sql import exists
-from loader import ADMIN, bot
+from loader import ADMIN, bot, today_day, today_month
 from config import private_sub, SUB_KIND
 
 
@@ -69,6 +69,35 @@ def all_sub_check(telegram_id: int) -> dict:
     return sub_status
 
 
+def get_today_birthdays_cf():
+    """Сегодняшние ДР в таблице ЦФ"""
+    session = db_session()
+    result = session.query(
+        Birthday_CF.division,
+        Birthday_CF.position,
+        Birthday_CF.name,
+        Birthday_CF.row_birth_date,
+        ).filter(Birthday_CF.day_of_birth == today_day,
+                 Birthday_CF.month_of_birth == today_month,
+                 ).all()
+    return result
+
+
+def get_today_birthdays_private(telegram_id: int):
+    """Сегодняшние ДР в таблице приватных др."""
+    session = db_session()
+    user_id = get_user_base_id(telegram_id)
+    result = session.query(
+        Birthday.name,
+        Birthday.row_birth_date,
+        Birthday.comment,
+        ).filter(Birthday.day_of_birth == today_day,
+                 Birthday.month_of_birth == today_month,
+                 Birthday.owner_id == user_id,
+                 ).all()
+    return result
+
+
 def get_user_base_id(telegram_id: int) -> int:
     """Получить id пользователя в базе (таблица users)."""
     session = db_session()
@@ -78,7 +107,7 @@ def get_user_base_id(telegram_id: int) -> int:
 
 
 def get_sub_base_id(sub_kind: str) -> int:
-    """Получить id пользователя в базе (таблица users)."""
+    """Получить id подписки в базе (таблица users)."""
     session = db_session()
     sub_db_id = session.query(Subscribe.id).filter(
         Subscribe.name == sub_kind).one()[0]
