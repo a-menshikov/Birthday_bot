@@ -8,8 +8,7 @@ from sqlalchemy.orm import relationship
 class User(Base):
     """Модель пользователя."""
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, nullable=False, unique=True)
+    id = Column(Integer, primary_key=True, nullable=False, unique=True)
     created_on = Column(Text, default=date.today)
     active = Column(Integer, nullable=False, default=1)
     notes = relationship('Birthday', backref="notes")

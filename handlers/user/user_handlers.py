@@ -2,8 +2,8 @@ from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 from data.services import (all_sub_check, create_new_birthday_note,
                            create_new_user, get_today_birthdays_cf,
-                           get_today_birthdays_private, get_user_base_id,
-                           is_user_exist_in_base, view_users_birthday_notes)
+                           get_today_birthdays_private, is_user_exist_in_base,
+                           view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        in_main_menu, menu_reply_keyboard, my_birthdays_button,
                        reg_button, reg_keyboard, sub_keyboard, subscribes,
@@ -122,7 +122,7 @@ async def comment_input(message: types.Message, state: FSMContext):
         return
     async with state.proxy() as data:
         data['comment'] = message.text
-        data['owner_id'] = get_user_base_id(telegram_id)
+        data['owner_id'] = telegram_id
         create_new_birthday_note(data)
         await message.answer("Запись создана",
                              reply_markup=menu_reply_keyboard(telegram_id))

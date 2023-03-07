@@ -10,7 +10,7 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
     """Проверка наличию пользователя в базе (таблица users)."""
     session = db_session()
     check = session.query(exists().where(
-        User.telegram_id == telegram_id)).scalar()
+        User.id == telegram_id)).scalar()
     if check:
         return True
     return False
@@ -55,11 +55,10 @@ def all_sub_check(telegram_id: int) -> dict:
         sub_status[sub] = False
 
     session = db_session()
-    user_db_id = get_user_base_id(telegram_id)
     user_subs = session.query(UserSubscribe.subscribe,
                               Subscribe.name,
                               ).join(Subscribe).filter(
-                                    UserSubscribe.user_id == user_db_id,
+                                    UserSubscribe.user_id == telegram_id,
                                     UserSubscribe.status == 1
                                     ).all()
 
@@ -86,28 +85,19 @@ def get_today_birthdays_cf():
 def get_today_birthdays_private(telegram_id: int):
     """Сегодняшние ДР в таблице приватных др."""
     session = db_session()
-    user_id = get_user_base_id(telegram_id)
     result = session.query(
         Birthday.name,
         Birthday.row_birth_date,
         Birthday.comment,
         ).filter(Birthday.day_of_birth == today_day,
                  Birthday.month_of_birth == today_month,
-                 Birthday.owner_id == user_id,
+                 Birthday.owner_id == telegram_id,
                  ).all()
     return result
 
 
-def get_user_base_id(telegram_id: int) -> int:
-    """Получить id пользователя в базе (таблица users)."""
-    session = db_session()
-    user_db_id = session.query(User.id).filter(
-        User.telegram_id == telegram_id).one()[0]
-    return user_db_id
-
-
 def get_sub_base_id(sub_kind: str) -> int:
-    """Получить id подписки в базе (таблица users)."""
+    """Получить id подписки в базе"""
     session = db_session()
     sub_db_id = session.query(Subscribe.id).filter(
         Subscribe.name == sub_kind).one()[0]
@@ -117,7 +107,7 @@ def get_sub_base_id(sub_kind: str) -> int:
 def create_new_user(telegram_id: int) -> None:
     """Создание нового пользователя"""
     session = db_session()
-    new_user = User(telegram_id=telegram_id)
+    new_user = User(id=telegram_id)
     session.add(new_user)
     session.commit()
     create_new_subscribe(telegram_id, private_sub)
@@ -126,9 +116,11 @@ def create_new_user(telegram_id: int) -> None:
 def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
     """Создание подписки для пользователя"""
     session = db_session()
-    user_id = get_user_base_id(telegram_id)
     sub_id = get_sub_base_id(sub_kind)
-    new_subscribe = UserSubscribe(user_id=user_id, subscribe=sub_id, status=1)
+    new_subscribe = UserSubscribe(user_id=telegram_id,
+                                  subscribe=sub_id,
+                                  status=1
+                                  )
     session.add(new_subscribe)
     session.commit()
 
@@ -162,12 +154,11 @@ def view_users_birthday_notes(telegram_id: int) -> None:
     """Запрос из базы всех записей о ДР конкретного пользователя
     Возвращает список кортежей."""
     session = db_session()
-    user_id = get_user_base_id(telegram_id)
     notes = session.query(
         Birthday.id,
         Birthday.name,
         Birthday.row_birth_date,
         Birthday.comment).where(
-        Birthday.owner_id == user_id).all()
+        Birthday.owner_id == telegram_id).all()
     session.commit()
     return notes
