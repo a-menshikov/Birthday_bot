@@ -23,7 +23,6 @@ class Birthday(Base):
     row_birth_date = Column(Text, nullable=False)
     day_of_birth = Column(Integer, nullable=False)
     month_of_birth = Column(Integer, nullable=False)
-    comment = Column(Text)
     created_on = Column(Text, default=date.today)
 
 

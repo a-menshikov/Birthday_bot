@@ -1,4 +1,3 @@
-import datetime
 import pytz
 
 private_sub = 'private'
@@ -18,7 +17,4 @@ SUB_BUTTON_NAME = {
     cf_sub: cf_button,
 }
 
-timezone_moscow = pytz.timezone("Etc/GMT-3")
-today_full_date = datetime.datetime.now(timezone_moscow).date()
-today_day = today_full_date.day
-today_month = today_full_date.month
+timezone = pytz.timezone("Etc/GMT-3")

@@ -1,8 +1,9 @@
 import csv
 
-from config import SUB_KIND, private_sub, today_day, today_month
+from config import SUB_KIND, private_sub, timezone, cf_sub
 from loader import ADMIN, bot
 from sqlalchemy.sql import exists
+import datetime
 
 from .db_loader import db_session
 from .models import Birthday, Birthday_CF, Subscribe, User, UserSubscribe
@@ -73,6 +74,9 @@ def all_sub_check(telegram_id: int) -> dict:
 def get_today_birthdays_cf():
     """Сегодняшние ДР в таблице ЦФ"""
     session = db_session()
+    today_full_date = datetime.datetime.now(timezone).date()
+    today_day = today_full_date.day
+    today_month = today_full_date.month
     result = session.query(
         Birthday_CF.division,
         Birthday_CF.position,
@@ -87,10 +91,12 @@ def get_today_birthdays_cf():
 def get_today_birthdays_private(telegram_id: int):
     """Сегодняшние ДР в таблице приватных др."""
     session = db_session()
+    today_full_date = datetime.datetime.now(timezone).date()
+    today_day = today_full_date.day
+    today_month = today_full_date.month
     result = session.query(
         Birthday.name,
         Birthday.row_birth_date,
-        Birthday.comment,
         ).filter(Birthday.day_of_birth == today_day,
                  Birthday.month_of_birth == today_month,
                  Birthday.owner_id == telegram_id,
@@ -113,6 +119,7 @@ def create_new_user(telegram_id: int) -> None:
     session.add(new_user)
     session.commit()
     create_new_subscribe(telegram_id, private_sub)
+    create_new_subscribe(telegram_id, cf_sub)
 
 
 def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
@@ -135,7 +142,7 @@ def create_new_birthday_note(data: dict) -> None:
                         row_birth_date=data['row_birth_date'],
                         day_of_birth=data['day_of_birth'],
                         month_of_birth=data['month_of_birth'],
-                        comment=data['comment'])
+                        )
     session.add(new_note)
     session.commit()
 
@@ -159,8 +166,8 @@ def view_users_birthday_notes(telegram_id: int) -> None:
     notes = session.query(
         Birthday.id,
         Birthday.name,
-        Birthday.row_birth_date,
-        Birthday.comment).where(
+        Birthday.row_birth_date
+        ).where(
         Birthday.owner_id == telegram_id).all()
     session.commit()
     return notes

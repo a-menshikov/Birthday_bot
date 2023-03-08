@@ -5,4 +5,4 @@ class NewBirthdayStates(StatesGroup):
     """Машина состояний новой записи о дне рождения."""
     name = State()
     birth_date = State()
-    comment = State()
+    # comment = State()
