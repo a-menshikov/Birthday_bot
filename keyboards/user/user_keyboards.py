@@ -1,4 +1,5 @@
-from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
+from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
+                           KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
 from config import SUB_BUTTON_NAME
 
@@ -8,6 +9,7 @@ my_birthdays_button = "Мои ДР"
 cancel_button = "Отмена"
 in_main_menu = "В главное меню"
 today_birthday = "ДР сегодня"
+delete_button = "Удалить"
 
 
 def remove_keyboard():
@@ -52,4 +54,14 @@ def canсel_keyboard():
     """Клавиатура отмены процесса."""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
     markup.add(KeyboardButton(cancel_button))
+    return markup
+
+
+def delete_note(id: int):
+    """Клавиатура удаления записи процесса."""
+    markup = InlineKeyboardMarkup()
+    # markup.add(InlineKeyboardButton(delete_button,
+    #                                 callback_data=f'Удалить {id}'))
+    markup.add(InlineKeyboardButton(delete_button,
+                                    callback_data=f'Удалить {id}'))
     return markup

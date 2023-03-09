@@ -1,13 +1,14 @@
 from aiogram import types
 import datetime
+from time import sleep
 from aiogram.dispatcher import Dispatcher, FSMContext
 from data.services import (all_sub_check, create_new_birthday_note,
                            create_new_user, get_today_birthdays_cf,
                            get_today_birthdays_private, is_user_exist_in_base,
-                           view_users_birthday_notes)
+                           view_users_birthday_notes, delete_birthday_note)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        in_main_menu, menu_reply_keyboard, my_birthdays_button,
-                       reg_button, reg_keyboard, sub_keyboard,
+                       reg_button, reg_keyboard, sub_keyboard, delete_note,
                        today_birthday)
 from config import private_sub, cf_sub, timezone
 from states.states import NewBirthdayStates
@@ -130,8 +131,17 @@ async def my_birthdays(message: types.Message):
     """Вывод информации о ДР_записях пользователя."""
     telegram_id = message.from_user.id
     notes = view_users_birthday_notes(telegram_id)
-    await message.answer(notes,
-                         reply_markup=menu_reply_keyboard())
+    if notes:
+        for i in notes:
+            text = (f'{i[1]}\n'
+                    f'{i[2]}\n')
+            sleep(0.05)
+            await message.answer(text,
+                                 reply_markup=delete_note(i[0]))
+    else:
+        text = ('Список пустой')
+        await message.answer(text,
+                             reply_markup=menu_reply_keyboard())
 
 
 async def today_birthdays(message: types.Message):
@@ -169,6 +179,16 @@ async def today_birthdays(message: types.Message):
                          )
 
 
+async def delete_bd_note(call: types.CallbackQuery):
+    """Удалить запись о др."""
+    note_id = call.data.split()[1]
+    try:
+        delete_birthday_note(note_id)
+        await call.answer(f'Удалена запись {note_id}')
+    except ValueError:
+        await call.answer(f'{note_id} не существует')
+
+
 def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(starter, commands=["start", "help"])
     dp.register_message_handler(registration, text=reg_button)
@@ -180,3 +200,5 @@ def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(name_input, state=NewBirthdayStates.name)
     dp.register_message_handler(birth_date_input,
                                 state=NewBirthdayStates.birth_date)
+    dp.register_callback_query_handler(delete_bd_note,
+                                       text_startswith='Удалить')

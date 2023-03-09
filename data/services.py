@@ -159,6 +159,17 @@ def create_new_birthday_note_cf(data: dict) -> None:
         session.commit()
 
 
+def delete_birthday_note(id: int) -> None:
+    """Удаление записи о дне рождения."""
+    session = db_session()
+    check = session.query(Birthday).filter(
+        Birthday.id == id).all()
+    if not check:
+        raise ValueError('Нет такой записи')
+    session.delete(check[0])
+    session.commit()
+
+
 def view_users_birthday_notes(telegram_id: int) -> None:
     """Запрос из базы всех записей о ДР конкретного пользователя
     Возвращает список кортежей."""
