@@ -18,7 +18,7 @@ async def on_startup(_):
 
 async def scheduler():
     """Расписание выполнения задач."""
-    aioschedule.every().day.at("10:15").do(today_birthdays_schedule_sendler)
+    aioschedule.every().day.at("06:00").do(today_birthdays_schedule_sendler)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
