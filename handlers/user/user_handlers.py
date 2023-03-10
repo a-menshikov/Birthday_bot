@@ -1,16 +1,15 @@
-from aiogram import types
-import datetime
 from time import sleep
+
+from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 from data.services import (all_sub_check, create_new_birthday_note,
-                           create_new_user, get_today_birthdays_cf,
-                           get_today_birthdays_private, is_user_exist_in_base,
-                           view_users_birthday_notes, delete_birthday_note)
+                           create_new_user, delete_birthday_note,
+                           is_user_exist_in_base, make_today_bd_message,
+                           view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
-                       in_main_menu, menu_reply_keyboard, my_birthdays_button,
-                       reg_button, reg_keyboard, sub_keyboard, delete_note,
-                       today_birthday)
-from config import private_sub, cf_sub, timezone
+                       delete_note, in_main_menu, menu_reply_keyboard,
+                       my_birthdays_button, reg_button, reg_keyboard,
+                       sub_keyboard, today_birthday)
 from states.states import NewBirthdayStates
 
 from .validators import validate_birthday, validate_name
@@ -147,33 +146,7 @@ async def my_birthdays(message: types.Message):
 async def today_birthdays(message: types.Message):
     """Вывод информации о ДР в подписках пользователя сегодня."""
     telegram_id = message.from_user.id
-    subscribe_status = all_sub_check(telegram_id)
-    today_full_date = datetime.datetime.now(timezone).date()
-    base_message = f'Дата: {today_full_date}\n\n'
-    if subscribe_status[private_sub]:
-        private = get_today_birthdays_private(telegram_id)
-        base_message += 'В ЛИЧНЫХ ЗАПИСЯХ:\n\n'
-        if private:
-            for i in private:
-                add_message = (f'{i[0]}\n'
-                               f'{i[1]}\n\n'
-                               )
-                base_message += add_message
-        else:
-            base_message += 'Сегодня нет дней рождения\n\n'
-    if subscribe_status[cf_sub]:
-        cf = get_today_birthdays_cf()
-        base_message += 'В ЦЕНТРОФИНАНСЕ:\n\n'
-        if cf:
-            for i in cf:
-                add_message = (f'{i[0]}\n'
-                               f'{i[1]}\n'
-                               f'{i[2]}\n'
-                               f'{i[3]}\n\n'
-                               )
-                base_message += add_message
-        else:
-            base_message += 'Сегодня нет дней рождения\n'
+    base_message = make_today_bd_message(telegram_id)
     await message.answer(base_message,
                          reply_markup=menu_reply_keyboard(),
                          )

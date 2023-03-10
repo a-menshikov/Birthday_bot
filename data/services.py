@@ -104,12 +104,63 @@ def get_today_birthdays_private(telegram_id: int):
     return result
 
 
+def make_today_bd_message(telegram_id: int):
+    subscribe_status = all_sub_check(telegram_id)
+    today_full_date = datetime.datetime.now(timezone).date()
+    base_message = f'Дата: {today_full_date}\n\n'
+    if subscribe_status[private_sub]:
+        private = get_today_birthdays_private(telegram_id)
+        base_message += 'В ЛИЧНЫХ ЗАПИСЯХ:\n\n'
+        if private:
+            for i in private:
+                add_message = (f'{i[0]}\n'
+                               f'{i[1]}\n\n'
+                               )
+                base_message += add_message
+        else:
+            base_message += 'Сегодня нет дней рождения\n\n'
+    if subscribe_status[cf_sub]:
+        cf = get_today_birthdays_cf()
+        base_message += 'В ЦЕНТРОФИНАНСЕ:\n\n'
+        if cf:
+            for i in cf:
+                add_message = (f'{i[0]}\n'
+                               f'{i[1]}\n'
+                               f'{i[2]}\n'
+                               f'{i[3]}\n\n'
+                               )
+                base_message += add_message
+        else:
+            base_message += 'Сегодня нет дней рождения\n'
+    return base_message
+
+
+async def today_birthdays_schedule_sendler():
+    """Ежедневная рассылка."""
+    users = get_all_users()
+    if not users:
+        return
+    for i in users:
+        user_id = i[0]
+        base_message = make_today_bd_message(user_id)
+        try:
+            await bot.send_message(user_id, base_message)
+        except Exception:
+            continue
+
+
 def get_sub_base_id(sub_kind: str) -> int:
     """Получить id подписки в базе"""
     session = db_session()
     sub_db_id = session.query(Subscribe.id).filter(
         Subscribe.name == sub_kind).one()[0]
     return sub_db_id
+
+
+def get_all_users():
+    """Получить id подписки в базе"""
+    session = db_session()
+    return session.query(User.id).all()
 
 
 def create_new_user(telegram_id: int) -> None:
