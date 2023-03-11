@@ -153,4 +153,4 @@ cython_debug/
 .bash
 *.db
 .dockerignore
-Книга3.xlsx
+*.xlsx
