@@ -1,0 +1,8 @@
+services:
+  bot:
+    build: .
+    working_dir: /
+    volumes:
+      - ./:/
+    restart: always
+    name: menshikovas/birthday
