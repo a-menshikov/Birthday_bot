@@ -1,8 +1,10 @@
+version: '3.0'
+
 services:
   bot:
-    build: .
-    working_dir: /
+    image: menshikovas/birthday_bot:latest
+    working_dir: /bot
     volumes:
-      - ./:/
+      - /mnt/e/DEV/private/birthday_bot/vol:/bot/db
     restart: always
-    name: menshikovas/birthday
+    env_file: /mnt/e/DEV/private/birthday_bot/.env

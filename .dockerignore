@@ -1,2 +1,7 @@
+.env
+*.db
+*.log
 .git
 venv/
+pytest.ini
+__pycache__/
