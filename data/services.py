@@ -10,7 +10,7 @@ from .models import Birthday, BirthdayCF, Subscribe, User, UserSubscribe
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
-    """Проверка наличию пользователя в базе (таблица users)."""
+    """Проверка наличия пользователя в базе (таблица users)."""
     check = db_session.query(exists().where(
         User.id == telegram_id)).scalar()
     if check:
@@ -99,6 +99,10 @@ def get_today_birthdays_private(telegram_id: int):
 
 
 def make_today_bd_message(telegram_id: int):
+    """Сформировать сообщение о сегодняшних ДР пользователя
+    Возвращает кортеж - первый элемент: само сообщение,
+    второй элемент: флаг пустого сообщения - если True, то
+    ни одного ДР в сообщении нет."""
     subscribe_status = all_sub_check(telegram_id)
     today_full_date = datetime.datetime.now(timezone).date()
     base_message = f'Дата: {today_full_date}\n\n'
@@ -120,7 +124,7 @@ def make_today_bd_message(telegram_id: int):
 
     if subscribe_status[cf_sub]:
         cf = get_today_birthdays_cf()
-        base_message += 'В ЦЕНТРОФИНАНСЕ:\n\n'
+        base_message += 'В ЦФ:\n\n'
         if cf:
             for i in cf:
                 add_message = (f'{i[0]}\n'
@@ -159,7 +163,7 @@ def get_sub_base_id(sub_kind: str) -> int:
 
 
 def get_all_users():
-    """Получить id подписки в базе"""
+    """Получить id всех юзеров."""
     return db_session.query(User.id).all()
 
 
