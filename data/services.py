@@ -1,19 +1,17 @@
 import csv
 import datetime
 
-from sqlalchemy.sql import exists
-
 from config import SUB_KIND, cf_sub, private_sub, timezone
 from loader import ADMIN, CF_GROUP, bot
+from sqlalchemy.sql import exists
 
 from .db_loader import db_session
-from .models import Birthday, Birthday_CF, Subscribe, User, UserSubscribe
+from .models import Birthday, BirthdayCF, Subscribe, User, UserSubscribe
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
     """Проверка наличию пользователя в базе (таблица users)."""
-    session = db_session()
-    check = session.query(exists().where(
+    check = db_session.query(exists().where(
         User.id == telegram_id)).scalar()
     if check:
         return True
@@ -58,10 +56,9 @@ def all_sub_check(telegram_id: int) -> dict:
     for sub in SUB_KIND.keys():
         sub_status[sub] = False
 
-    session = db_session()
-    user_subs = session.query(UserSubscribe.subscribe,
-                              Subscribe.name,
-                              ).join(Subscribe).filter(
+    user_subs = db_session.query(UserSubscribe.subscribe,
+                                 Subscribe.name,
+                                 ).join(Subscribe).filter(
                                     UserSubscribe.user_id == telegram_id,
                                     UserSubscribe.status == 1
                                     ).all()
@@ -74,27 +71,25 @@ def all_sub_check(telegram_id: int) -> dict:
 
 def get_today_birthdays_cf():
     """Сегодняшние ДР в таблице ЦФ"""
-    session = db_session()
     today_full_date = datetime.datetime.now(timezone).date()
     today_day = today_full_date.day
     today_month = today_full_date.month
-    return session.query(
-        Birthday_CF.division,
-        Birthday_CF.position,
-        Birthday_CF.name,
-        Birthday_CF.row_birth_date,
-        ).filter(Birthday_CF.day_of_birth == today_day,
-                 Birthday_CF.month_of_birth == today_month,
+    return db_session.query(
+        BirthdayCF.division,
+        BirthdayCF.position,
+        BirthdayCF.name,
+        BirthdayCF.row_birth_date,
+        ).filter(BirthdayCF.day_of_birth == today_day,
+                 BirthdayCF.month_of_birth == today_month,
                  ).all()
 
 
 def get_today_birthdays_private(telegram_id: int):
     """Сегодняшние ДР в таблице приватных др."""
-    session = db_session()
     today_full_date = datetime.datetime.now(timezone).date()
     today_day = today_full_date.day
     today_month = today_full_date.month
-    return session.query(
+    return db_session.query(
         Birthday.name,
         Birthday.row_birth_date,
         ).filter(Birthday.day_of_birth == today_day,
@@ -159,23 +154,20 @@ async def today_birthdays_schedule_sendler():
 
 def get_sub_base_id(sub_kind: str) -> int:
     """Получить id подписки в базе"""
-    session = db_session()
-    return session.query(Subscribe.id).filter(
+    return db_session.query(Subscribe.id).filter(
         Subscribe.name == sub_kind).one()[0]
 
 
 def get_all_users():
     """Получить id подписки в базе"""
-    session = db_session()
-    return session.query(User.id).all()
+    return db_session.query(User.id).all()
 
 
 def create_new_user(telegram_id: int) -> None:
     """Создание нового пользователя"""
-    session = db_session()
     new_user = User(id=telegram_id)
-    session.add(new_user)
-    session.commit()
+    db_session.add(new_user)
+    db_session.commit()
     create_new_subscribe(telegram_id, private_sub)
     if telegram_id in CF_GROUP:
         create_new_subscribe(telegram_id, cf_sub)
@@ -183,57 +175,52 @@ def create_new_user(telegram_id: int) -> None:
 
 def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
     """Создание подписки для пользователя"""
-    session = db_session()
     sub_id = get_sub_base_id(sub_kind)
     new_subscribe = UserSubscribe(user_id=telegram_id,
                                   subscribe=sub_id,
                                   status=1
                                   )
-    session.add(new_subscribe)
-    session.commit()
+    db_session.add(new_subscribe)
+    db_session.commit()
 
 
 def create_new_birthday_note(data: dict) -> None:
     """Создание новой записи о дне рождения."""
-    session = db_session()
     new_note = Birthday(owner_id=data['owner_id'],
                         name=data['name'],
                         row_birth_date=data['row_birth_date'],
                         day_of_birth=data['day_of_birth'],
                         month_of_birth=data['month_of_birth'],
                         )
-    session.add(new_note)
-    session.commit()
+    db_session.add(new_note)
+    db_session.commit()
 
 
 def create_new_birthday_note_cf(data: dict) -> None:
     """Создание новой записи о дне рождения ЦФ."""
-    session = db_session()
-    check = session.query(Birthday_CF).filter(
-        Birthday_CF.name == data['name'],
-        Birthday_CF.row_birth_date == data['row_birth_date']).all()
+    check = db_session.query(BirthdayCF).filter(
+        BirthdayCF.name == data['name'],
+        BirthdayCF.row_birth_date == data['row_birth_date']).all()
     if not check:
-        new_note = Birthday_CF(**data)
-        session.add(new_note)
-        session.commit()
+        new_note = BirthdayCF(**data)
+        db_session.add(new_note)
+        db_session.commit()
 
 
 def delete_birthday_note(id: int) -> None:
     """Удаление записи о дне рождения."""
-    session = db_session()
-    check = session.query(Birthday).filter(
+    check = db_session.query(Birthday).filter(
         Birthday.id == id).all()
     if not check:
         raise ValueError('Нет такой записи')
-    session.delete(check[0])
-    session.commit()
+    db_session.delete(check[0])
+    db_session.commit()
 
 
 def view_users_birthday_notes(telegram_id: int) -> None:
     """Запрос из базы всех записей о ДР конкретного пользователя
     Возвращает список кортежей."""
-    session = db_session()
-    return session.query(
+    return db_session.query(
         Birthday.id,
         Birthday.name,
         Birthday.row_birth_date

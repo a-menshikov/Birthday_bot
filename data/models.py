@@ -27,7 +27,7 @@ class Birthday(Base):
     created_on = Column(Text, default=date.today)
 
 
-class Birthday_CF(Base):
+class BirthdayCF(Base):
     """Запись о дне рождения для списка Ц."""
     __tablename__ = 'birthdays_cf'
     id = Column(Integer, primary_key=True, autoincrement=True)
