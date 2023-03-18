@@ -1,5 +1,6 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
+
 from data.services import is_user_exist_in_base
 from keyboards import menu_reply_keyboard, reg_keyboard
 

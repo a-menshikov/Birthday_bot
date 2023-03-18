@@ -1,6 +1,7 @@
 from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
+
 from config import SUB_BUTTON_NAME
 
 reg_button = "Регистрация"

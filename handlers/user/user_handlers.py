@@ -2,6 +2,7 @@ from time import sleep
 
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
+
 from data.services import (all_sub_check, create_new_birthday_note,
                            create_new_user, delete_birthday_note,
                            is_user_exist_in_base, make_today_bd_message,

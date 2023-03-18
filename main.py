@@ -2,6 +2,7 @@ import asyncio
 
 import aioschedule
 from aiogram.utils import executor
+
 from data.create_db import create_db
 from data.services import today_birthdays_schedule_sendler
 from handlers.other import other_handlers
