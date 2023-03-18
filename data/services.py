@@ -1,9 +1,9 @@
 import csv
-
-from config import SUB_KIND, private_sub, timezone, cf_sub
-from loader import ADMIN, bot
-from sqlalchemy.sql import exists
 import datetime
+
+from config import SUB_KIND, cf_sub, private_sub, timezone
+from loader import ADMIN, CF_GROUP, bot
+from sqlalchemy.sql import exists
 
 from .db_loader import db_session
 from .models import Birthday, Birthday_CF, Subscribe, User, UserSubscribe
@@ -21,7 +21,7 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
 
 async def input_c_birthdays_in_base():
     """Загрузить в базу данные о ДР в Ц."""
-    path = 'data/Ц.csv'
+    path = 'db/Ц.csv'
 
     with open(path, encoding='1251', mode='r') as file:
         csv_read = csv.DictReader(file, delimiter=';')
@@ -77,7 +77,7 @@ def get_today_birthdays_cf():
     today_full_date = datetime.datetime.now(timezone).date()
     today_day = today_full_date.day
     today_month = today_full_date.month
-    result = session.query(
+    return session.query(
         Birthday_CF.division,
         Birthday_CF.position,
         Birthday_CF.name,
@@ -85,7 +85,6 @@ def get_today_birthdays_cf():
         ).filter(Birthday_CF.day_of_birth == today_day,
                  Birthday_CF.month_of_birth == today_month,
                  ).all()
-    return result
 
 
 def get_today_birthdays_private(telegram_id: int):
@@ -94,31 +93,35 @@ def get_today_birthdays_private(telegram_id: int):
     today_full_date = datetime.datetime.now(timezone).date()
     today_day = today_full_date.day
     today_month = today_full_date.month
-    result = session.query(
+    return session.query(
         Birthday.name,
         Birthday.row_birth_date,
         ).filter(Birthday.day_of_birth == today_day,
                  Birthday.month_of_birth == today_month,
                  Birthday.owner_id == telegram_id,
                  ).all()
-    return result
 
 
 def make_today_bd_message(telegram_id: int):
     subscribe_status = all_sub_check(telegram_id)
     today_full_date = datetime.datetime.now(timezone).date()
     base_message = f'Дата: {today_full_date}\n\n'
+    empty = True
+
     if subscribe_status[private_sub]:
         private = get_today_birthdays_private(telegram_id)
-        base_message += 'В ЛИЧНЫХ ЗАПИСЯХ:\n\n'
+        base_message += 'ДНИ РОЖДЕНИЯ СЕГОДНЯ:\n\n'
         if private:
             for i in private:
                 add_message = (f'{i[0]}\n'
                                f'{i[1]}\n\n'
                                )
                 base_message += add_message
+                if empty:
+                    empty = False
         else:
             base_message += 'Сегодня нет дней рождения\n\n'
+
     if subscribe_status[cf_sub]:
         cf = get_today_birthdays_cf()
         base_message += 'В ЦЕНТРОФИНАНСЕ:\n\n'
@@ -130,9 +133,12 @@ def make_today_bd_message(telegram_id: int):
                                f'{i[3]}\n\n'
                                )
                 base_message += add_message
+                if empty:
+                    empty = False
         else:
             base_message += 'Сегодня нет дней рождения\n'
-    return base_message
+
+    return base_message, empty
 
 
 async def today_birthdays_schedule_sendler():
@@ -142,19 +148,19 @@ async def today_birthdays_schedule_sendler():
         return
     for i in users:
         user_id = i[0]
-        base_message = make_today_bd_message(user_id)
-        try:
-            await bot.send_message(user_id, base_message)
-        except Exception:
-            continue
+        base_message, empty = make_today_bd_message(user_id)
+        if not empty:
+            try:
+                await bot.send_message(user_id, base_message)
+            except Exception:
+                continue
 
 
 def get_sub_base_id(sub_kind: str) -> int:
     """Получить id подписки в базе"""
     session = db_session()
-    sub_db_id = session.query(Subscribe.id).filter(
+    return session.query(Subscribe.id).filter(
         Subscribe.name == sub_kind).one()[0]
-    return sub_db_id
 
 
 def get_all_users():
@@ -170,7 +176,8 @@ def create_new_user(telegram_id: int) -> None:
     session.add(new_user)
     session.commit()
     create_new_subscribe(telegram_id, private_sub)
-    create_new_subscribe(telegram_id, cf_sub)
+    if telegram_id in CF_GROUP:
+        create_new_subscribe(telegram_id, cf_sub)
 
 
 def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
@@ -225,11 +232,9 @@ def view_users_birthday_notes(telegram_id: int) -> None:
     """Запрос из базы всех записей о ДР конкретного пользователя
     Возвращает список кортежей."""
     session = db_session()
-    notes = session.query(
+    return session.query(
         Birthday.id,
         Birthday.name,
         Birthday.row_birth_date
         ).where(
         Birthday.owner_id == telegram_id).all()
-    session.commit()
-    return notes

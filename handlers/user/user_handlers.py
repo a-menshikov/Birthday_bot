@@ -146,7 +146,7 @@ async def my_birthdays(message: types.Message):
 async def today_birthdays(message: types.Message):
     """Вывод информации о ДР в подписках пользователя сегодня."""
     telegram_id = message.from_user.id
-    base_message = make_today_bd_message(telegram_id)
+    base_message, empty = make_today_bd_message(telegram_id)
     await message.answer(base_message,
                          reply_markup=menu_reply_keyboard(),
                          )

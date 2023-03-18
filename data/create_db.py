@@ -1,7 +1,7 @@
+from config import SUB_KIND
 from data.db_loader import Base, db_session, engine
 from data.models import Subscribe
 from data.services import input_c_birthdays_in_base
-from config import SUB_KIND
 
 
 async def create_db():
