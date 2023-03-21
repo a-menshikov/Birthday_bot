@@ -229,4 +229,5 @@ def view_users_birthday_notes(telegram_id: int) -> None:
         Birthday.name,
         Birthday.row_birth_date
         ).where(
-        Birthday.owner_id == telegram_id).all()
+            Birthday.owner_id == telegram_id
+            ).order_by(Birthday.id).all()

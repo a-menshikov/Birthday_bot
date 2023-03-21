@@ -1,5 +1,3 @@
-from time import sleep
-
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 
@@ -8,7 +6,7 @@ from data.services import (all_sub_check, create_new_birthday_note,
                            is_user_exist_in_base, make_today_bd_message,
                            view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
-                       delete_note, in_main_menu, menu_reply_keyboard,
+                       in_main_menu, menu_reply_keyboard,
                        my_birthdays_button, reg_button, reg_keyboard,
                        sub_keyboard, today_birthday)
 from states.states import NewBirthdayStates
@@ -132,12 +130,13 @@ async def my_birthdays(message: types.Message):
     telegram_id = message.from_user.id
     notes = view_users_birthday_notes(telegram_id)
     if notes:
+        text = ''
         for i in notes:
-            text = (f'{i[1]}\n'
-                    f'{i[2]}\n')
-            sleep(0.05)
-            await message.answer(text,
-                                 reply_markup=delete_note(i[0]))
+            text += f'{i[0]}.  {i[1]},  {i[2]} \n'
+        text += ('\n Чтобы удалить запись отправь боту '
+                 'сообщение формата "Удалить Х", где Х '
+                 'номер записи в этом списке.')
+        await message.answer(text)
     else:
         text = ('Список пустой')
         await message.answer(text,
@@ -153,14 +152,20 @@ async def today_birthdays(message: types.Message):
                          )
 
 
-async def delete_bd_note(call: types.CallbackQuery):
+async def delete_bd_note(message: types.Message):
     """Удалить запись о др."""
-    note_id = call.data.split()[1]
     try:
+        note_id = int(message.text.split()[1])
         delete_birthday_note(note_id)
-        await call.answer(f'Удалена запись {note_id}')
+        await message.answer('Запись удалена',
+                             reply_markup=menu_reply_keyboard())
+    except IndexError:
+        await message.answer('Запрос не соответствует формату "Удалить Х"',
+                             reply_markup=menu_reply_keyboard())
     except ValueError:
-        await call.answer(f'{note_id} не существует')
+        await message.answer('Запись не существует или '
+                             'принадлежит другому пользователю',
+                             reply_markup=menu_reply_keyboard())
 
 
 def register_user_handlers(dp: Dispatcher):
@@ -174,5 +179,5 @@ def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(name_input, state=NewBirthdayStates.name)
     dp.register_message_handler(birth_date_input,
                                 state=NewBirthdayStates.birth_date)
-    dp.register_callback_query_handler(delete_bd_note,
-                                       text_startswith='Удалить')
+    dp.register_message_handler(delete_bd_note,
+                                text_startswith=['Удалить', 'удалить'])
