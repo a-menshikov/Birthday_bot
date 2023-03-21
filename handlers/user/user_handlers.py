@@ -1,14 +1,15 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
-
 from data.services import (all_sub_check, create_new_birthday_note,
-                           create_new_user, delete_birthday_note,
+                           create_new_user, create_update_send_time,
+                           delete_birthday_note, get_send_time,
                            is_user_exist_in_base, make_today_bd_message,
                            view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
-                       in_main_menu, menu_reply_keyboard,
-                       my_birthdays_button, reg_button, reg_keyboard,
-                       sub_keyboard, today_birthday)
+                       in_main_menu, menu_reply_keyboard, my_birthdays_button,
+                       reg_button, reg_keyboard, sub_keyboard, time_1, time_2,
+                       time_3, time_4, time_5, time_6, time_reply_keyboard,
+                       time_setting, today_birthday)
 from states.states import NewBirthdayStates
 
 from .validators import validate_birthday, validate_name
@@ -152,6 +153,28 @@ async def today_birthdays(message: types.Message):
                          )
 
 
+async def set_time_menu(message: types.Message):
+    """Переход в меню настройки времени рассылки."""
+    telegram_id = message.from_user.id
+    now_time = get_send_time(telegram_id)
+    base_message = (f'Текущее время рассылки: {now_time}.\n'
+                    f'Часовой пояс GMT+3 (Московский).')
+    await message.answer(base_message,
+                         reply_markup=time_reply_keyboard(),
+                         )
+
+
+async def set_time_send(message: types.Message):
+    """Установка времени рассылки."""
+    telegram_id = message.from_user.id
+    create_update_send_time(telegram_id, message.text)
+    base_message = (f'Установлено время рассылки {message.text}.\n'
+                    f'Часовой пояс GMT+3 (Московский).')
+    await message.answer(base_message,
+                         reply_markup=menu_reply_keyboard(),
+                         )
+
+
 async def delete_bd_note(message: types.Message):
     """Удалить запись о др."""
     try:
@@ -174,6 +197,10 @@ def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(main_menu, text=in_main_menu)
     dp.register_message_handler(my_birthdays, text=my_birthdays_button)
     dp.register_message_handler(today_birthdays, text=today_birthday)
+    dp.register_message_handler(set_time_menu, text=time_setting)
+    dp.register_message_handler(set_time_send, text=[time_1, time_2,
+                                                     time_3, time_4,
+                                                     time_5, time_6])
     dp.register_message_handler(cancel_add_note, text=cancel_button, state='*')
     dp.register_message_handler(new_birthday, text=add_new_note, state=None)
     dp.register_message_handler(name_input, state=NewBirthdayStates.name)

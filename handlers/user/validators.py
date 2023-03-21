@@ -4,7 +4,7 @@ import re
 def validate_name(message):
     """Валидация введенных данных в поле Имя."""
     return (re.fullmatch(
-        r"^[a-яА-ЯЁёa-zA-Z\s]{1,200}$",
+        r"^[a-яА-ЯЁёa-zA-Z0-9\s]{1,200}$",
         message
     ) and len(message) <= 200)
 

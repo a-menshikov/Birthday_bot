@@ -1,12 +1,14 @@
 import csv
 import datetime
 
-from config import SUB_KIND, cf_sub, private_sub, timezone
+from config import SUB_KIND, cf_sub, private_sub, timezone, default_send_time
+from keyboards import menu_reply_keyboard
 from loader import ADMIN, CF_GROUP, bot
 from sqlalchemy.sql import exists
 
 from .db_loader import db_session
-from .models import Birthday, BirthdayCF, Subscribe, User, UserSubscribe
+from .models import (Birthday, BirthdayCF, Subscribe, User, UserSendTime,
+                     UserSubscribe)
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
@@ -141,9 +143,9 @@ def make_today_bd_message(telegram_id: int):
     return base_message, empty
 
 
-async def today_birthdays_schedule_sendler():
+async def today_birthdays_schedule_sendler(time: str):
     """Ежедневная рассылка."""
-    users = get_all_users()
+    users = get_all_users_with_fix_time(time)
     if not users:
         return
     for i in users:
@@ -151,7 +153,8 @@ async def today_birthdays_schedule_sendler():
         base_message, empty = make_today_bd_message(user_id)
         if not empty:
             try:
-                await bot.send_message(user_id, base_message)
+                await bot.send_message(user_id, base_message,
+                                       reply_markup=menu_reply_keyboard())
             except Exception:
                 continue
 
@@ -167,6 +170,13 @@ def get_all_users():
     return db_session.query(User.id).all()
 
 
+def get_all_users_with_fix_time(time: str):
+    """Получить id всех юзеров с рассылкой на конкретное время."""
+    return db_session.query(
+        UserSendTime.user_id).filter(
+            UserSendTime.time == time).all()
+
+
 def create_new_user(telegram_id: int) -> None:
     """Создание нового пользователя"""
     new_user = User(id=telegram_id)
@@ -175,6 +185,7 @@ def create_new_user(telegram_id: int) -> None:
     create_new_subscribe(telegram_id, private_sub)
     if telegram_id in CF_GROUP:
         create_new_subscribe(telegram_id, cf_sub)
+    create_update_send_time(telegram_id, default_send_time)
 
 
 def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
@@ -186,6 +197,33 @@ def create_new_subscribe(telegram_id: int, sub_kind: str) -> None:
                                   )
     db_session.add(new_subscribe)
     db_session.commit()
+
+
+def get_send_time(telegram_id: int) -> None:
+    """Получить время рассылки для пользователя"""
+    check = db_session.query(UserSendTime).filter(
+        UserSendTime.user_id == telegram_id).all()
+    if not check:
+        return 'не установлено'
+    else:
+        return check[0].time
+
+
+def create_update_send_time(telegram_id: int, time: str) -> None:
+    """Запись о времени рассылки для пользователя"""
+    check = db_session.query(UserSendTime).filter(
+        UserSendTime.user_id == telegram_id).all()
+    if not check:
+        new_note = UserSendTime(user_id=telegram_id,
+                                time=time
+                                )
+        db_session.add(new_note)
+        db_session.commit()
+    else:
+        db_session.query(UserSendTime).filter(
+            UserSendTime.user_id == telegram_id).update(
+                {"time": time}, synchronize_session='fetch')
+        db_session.commit()
 
 
 def create_new_birthday_note(data: dict) -> None:

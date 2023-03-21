@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .db_loader import Base
+from config import default_send_time
 
 
 class User(Base):
@@ -56,3 +57,11 @@ class UserSubscribe(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     subscribe = Column(Integer, ForeignKey('subscribe_kind.id'))
     status = Column(Boolean, nullable=False)
+
+
+class UserSendTime(Base):
+    """Время авторассылки пользователя."""
+    __tablename__ = 'users_send_time'
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False,
+                     primary_key=True)
+    time = Column(Text, nullable=False, default=default_send_time)

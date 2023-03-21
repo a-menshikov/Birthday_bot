@@ -6,6 +6,7 @@ private_button = 'Персональная'
 cf_sub = 'cf'
 cf_sub_description = 'дни рождения ЦФ'
 cf_button = 'ЦФ'
+default_send_time = '09:00'
 
 SUB_KIND = {
     private_sub: private_sub_description,
