@@ -2,9 +2,9 @@ version: '3.0'
 
 services:
   bot:
-    image: menshikovas/birthday_bot:latest
+    image: tbf
     working_dir: /bot
     volumes:
-      - /mnt/e/DEV/private/birthday_bot/vol:/bot/db
+      - tbf:/bot/db
     restart: always
-    env_file: /mnt/e/DEV/private/birthday_bot/.env
+    env_file: tbf.env
