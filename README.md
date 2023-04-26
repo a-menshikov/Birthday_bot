@@ -14,6 +14,7 @@
 - python==3.10
 - aiogram==2.25.1
 - SQLAlchemy==2.0.6
+- aioschedule==0.5.2
 
 ## Формат файла .env
 
