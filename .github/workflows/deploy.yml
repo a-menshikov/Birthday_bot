@@ -38,6 +38,7 @@ jobs:
               cd /home/birthday_bot/
               sudo docker compose down
               sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/birthday_bot:latest
+              sudo docker pull ${{ secrets.DOCKER_USERNAME }}/birthday_bot:latest
               sudo docker compose up -d
   
     send_message:
