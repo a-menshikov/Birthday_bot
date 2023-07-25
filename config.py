@@ -20,4 +20,4 @@ SUB_BUTTON_NAME = {
 
 timezone = pytz.timezone("Etc/GMT-3")
 
-future_days = 3
+future_days = 2
