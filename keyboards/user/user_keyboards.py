@@ -1,6 +1,6 @@
 from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
-from config import SUB_BUTTON_NAME
+from config import future_days, SUB_BUTTON_NAME
 
 reg_button = "Регистрация"
 add_new_note = "Добавить запись"
@@ -10,6 +10,7 @@ in_main_menu = "В главное меню"
 today_birthday = "ДР сегодня"
 delete_button = "Удалить"
 time_setting = "Время рассылки"
+future_birthday = f"Ближайшие {future_days} дня"
 
 time_1 = "07:00"
 time_2 = "09:00"
@@ -53,6 +54,9 @@ def menu_reply_keyboard():
     )
     markup.row(
         KeyboardButton(today_birthday),
+        KeyboardButton(future_birthday),
+    )
+    markup.row(
         KeyboardButton(time_setting),
     )
     return markup
