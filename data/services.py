@@ -112,10 +112,29 @@ def get_future_birthdays_private(telegram_id: int):
         results.extend(db_session.query(
             Birthday.name,
             Birthday.row_birth_date,
-            ).filter(Birthday.day_of_birth == current_day,
-                     Birthday.month_of_birth == current_month,
-                     Birthday.owner_id == telegram_id,
-                     ).all())
+        ).filter(Birthday.day_of_birth == current_day,
+                 Birthday.month_of_birth == current_month,
+                 Birthday.owner_id == telegram_id,
+                 ).all())
+    return results
+
+
+def get_future_birthdays_cf():
+    """Будущие ДР в таблице ЦФ."""
+    today_full_date = datetime.datetime.now(timezone).date()
+    results = []
+    for i in range(1, future_days + 1):
+        current_date = today_full_date + datetime.timedelta(days=i)
+        current_day = current_date.day
+        current_month = current_date.month
+        results.extend(db_session.query(
+            BirthdayCF.division,
+            BirthdayCF.position,
+            BirthdayCF.name,
+            BirthdayCF.row_birth_date,
+        ).filter(BirthdayCF.day_of_birth == current_day,
+                 BirthdayCF.month_of_birth == current_month,
+                 ).all())
     return results
 
 
@@ -186,33 +205,50 @@ def make_future_bd_message(telegram_id: int):
             base_message += (f'В ближайшие {future_days} дня '
                              f'нет дней рождения\n\n')
 
-    # if subscribe_status[cf_sub]:
-    #     cf = get_today_birthdays_cf()
-    #     base_message += 'В ЦФ:\n\n'
-    #     if cf:
-    #         for i in cf:
-    #             add_message = (f'{i[0]}\n'
-    #                            f'{i[1]}\n'
-    #                            f'{i[2]}\n'
-    #                            f'{i[3]}\n\n'
-    #                            )
-    #             base_message += add_message
-    #             if empty:
-    #                 empty = False
-    #     else:
-    #         base_message += 'Сегодня нет дней рождения\n'
+    if subscribe_status[cf_sub]:
+        cf = get_future_birthdays_cf()
+        base_message += 'В ЦФ:\n\n'
+        if cf:
+            for i in cf:
+                add_message = (f'{i[0]}\n'
+                               f'{i[1]}\n'
+                               f'{i[2]}\n'
+                               f'{i[3]}\n\n'
+                               )
+                base_message += add_message
+                if empty:
+                    empty = False
+        else:
+            base_message += (f'В ближайшие {future_days} дня в ЦФ '
+                             f'нет дней рождения\n\n')
 
     return base_message, empty
 
 
 async def today_birthdays_schedule_sendler(time: str):
-    """Ежедневная рассылка."""
+    """Ежедневная рассылка о сегодняшних ДР."""
     users = get_all_users_with_fix_time(time)
     if not users:
         return
     for i in users:
         user_id = i[0]
         base_message, empty = make_today_bd_message(user_id)
+        if not empty:
+            try:
+                await bot.send_message(user_id, base_message,
+                                       reply_markup=menu_reply_keyboard())
+            except Exception:
+                continue
+
+
+async def future_birthdays_schedule_sendler(time: str):
+    """Ежедневная рассылка о сегодняшних ДР."""
+    users = get_all_users_with_fix_time(time)
+    if not users:
+        return
+    for i in users:
+        user_id = i[0]
+        base_message, empty = make_future_bd_message(user_id)
         if not empty:
             try:
                 await bot.send_message(user_id, base_message,
