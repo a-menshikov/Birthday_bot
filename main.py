@@ -2,8 +2,10 @@ import asyncio
 
 import aioschedule
 from aiogram.utils import executor
+
 from data.create_db import create_db
-from data.services import today_birthdays_schedule_sendler
+from data.services import (future_birthdays_schedule_sendler,
+                           today_birthdays_schedule_sendler)
 from handlers.other import other_handlers
 from handlers.user import user_handlers
 from keyboards import time_1, time_2, time_3, time_4, time_5, time_6
@@ -22,6 +24,8 @@ async def scheduler():
     """Расписание выполнения задач."""
     scheduler = aioschedule.Scheduler()
     scheduler.every().day.at("04:00").do(today_birthdays_schedule_sendler,
+                                         time=time_1)
+    scheduler.every().day.at("04:00").do(future_birthdays_schedule_sendler,
                                          time=time_1)
     scheduler.every().day.at("06:00").do(today_birthdays_schedule_sendler,
                                          time=time_2)
