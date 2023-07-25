@@ -109,7 +109,7 @@ def get_future_birthdays_private(telegram_id: int):
         current_date = today_full_date + datetime.timedelta(days=i)
         current_day = current_date.day
         current_month = current_date.month
-        results.append(db_session.query(
+        results.extend(db_session.query(
             Birthday.name,
             Birthday.row_birth_date,
             ).filter(Birthday.day_of_birth == current_day,
