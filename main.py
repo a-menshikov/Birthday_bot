@@ -25,8 +25,6 @@ async def scheduler():
     scheduler = aioschedule.Scheduler()
     scheduler.every().day.at("04:00").do(today_birthdays_schedule_sendler,
                                          time=time_1)
-    scheduler.every().day.at("04:00").do(future_birthdays_schedule_sendler,
-                                         time=time_1)
     scheduler.every().day.at("06:00").do(today_birthdays_schedule_sendler,
                                          time=time_2)
     scheduler.every().day.at("08:00").do(today_birthdays_schedule_sendler,
@@ -36,6 +34,18 @@ async def scheduler():
     scheduler.every().day.at("12:00").do(today_birthdays_schedule_sendler,
                                          time=time_5)
     scheduler.every().day.at("15:00").do(today_birthdays_schedule_sendler,
+                                         time=time_6)
+    scheduler.every().day.at("04:00").do(future_birthdays_schedule_sendler,
+                                         time=time_1)
+    scheduler.every().day.at("06:00").do(future_birthdays_schedule_sendler,
+                                         time=time_2)
+    scheduler.every().day.at("08:00").do(future_birthdays_schedule_sendler,
+                                         time=time_3)
+    scheduler.every().day.at("10:00").do(future_birthdays_schedule_sendler,
+                                         time=time_4)
+    scheduler.every().day.at("12:00").do(future_birthdays_schedule_sendler,
+                                         time=time_5)
+    scheduler.every().day.at("15:00").do(future_birthdays_schedule_sendler,
                                          time=time_6)
     while True:
         await scheduler.run_pending()
