@@ -21,30 +21,63 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
     return False
 
 
-async def input_c_birthdays_in_base():
-    """Загрузить в базу данные о ДР в Ц."""
+async def check_c_birthdays_in_base():
+    """Привести базу данных о ДР в Ц в соотвествие с файлом."""
     path = 'db/Ц.csv'
+
+    # выбираем всех кто уже есть в базе из Ц
+    all_cf_now = db_session.query(
+        BirthdayCF.division,
+        BirthdayCF.position,
+        BirthdayCF.name,
+        ).all()
 
     with open(path, encoding='1251', mode='r') as file:
         csv_read = csv.DictReader(file, delimiter=';')
-        counter = 0
+        post_counter = 0
         for i in csv_read:
-            data = {}
-            data['name'] = i['Сотрудник']
-            data['row_birth_date'] = i['Дата рождения']
-            data['division'] = i['Подразделение организации']
-            data['position'] = i['Должность']
-            b_date_tuple = tuple(map(int, i['Дата рождения'].split('.')))
-            data['day_of_birth'] = b_date_tuple[0]
-            data['month_of_birth'] = b_date_tuple[1]
-            data['year_of_birth'] = b_date_tuple[2]
-            try:
-                create_new_birthday_note_cf(data)
-                counter += 1
-            except Exception as error:
-                print(error)
+            checker = (
+                i['Подразделение организации'],
+                i['Должность'],
+                i['Сотрудник'],
+            )
+            if checker in all_cf_now:
+                # если уже есть в базе удаляем из чекера и пропускаем
+                all_cf_now.remove(checker)
                 continue
-        await bot.send_message(ADMIN, 'all ЦФ done')
+            else:
+                data = {}
+                data['name'] = i['Сотрудник']
+                data['row_birth_date'] = i['Дата рождения']
+                data['division'] = i['Подразделение организации']
+                data['position'] = i['Должность']
+                b_date_tuple = tuple(map(int, i['Дата рождения'].split('.')))
+                data['day_of_birth'] = b_date_tuple[0]
+                data['month_of_birth'] = b_date_tuple[1]
+                data['year_of_birth'] = b_date_tuple[2]
+                try:
+                    create_new_birthday_note_cf(data)
+                    post_counter += 1
+                except Exception as error:
+                    print(error)
+                    continue
+
+        del_count = 0
+        # всех кого не нашли в файле из базы удаляем
+        for i in all_cf_now:
+            check = db_session.query(BirthdayCF).filter(
+                BirthdayCF.division == i[0],
+                BirthdayCF.position == i[1],
+                BirthdayCF.name == i[2],
+            ).all()
+            db_session.delete(check[0])
+            db_session.commit()
+            del_count += 1
+
+        await bot.send_message(
+            ADMIN,
+            f'all ЦФ done, создано {post_counter}, удалено {del_count}',
+        )
 
 
 def is_admin(telegram_id: int):
