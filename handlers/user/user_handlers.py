@@ -188,17 +188,20 @@ async def set_time_send(message: types.Message):
 
 async def delete_bd_note(message: types.Message):
     """Удалить запись о др."""
+    telegram_id = message.from_user.id
     try:
         note_id = int(message.text.split()[1])
-        delete_birthday_note(note_id)
+        delete_birthday_note(note_id, telegram_id)
         await message.answer('Запись удалена',
                              reply_markup=menu_reply_keyboard())
     except IndexError:
         await message.answer('Запрос не соответствует формату "Удалить Х"',
                              reply_markup=menu_reply_keyboard())
     except ValueError:
-        await message.answer('Запись не существует или '
-                             'принадлежит другому пользователю',
+        await message.answer('Запись не существует',
+                             reply_markup=menu_reply_keyboard())
+    except PermissionError:
+        await message.answer('Эта запись принадлежит другому пользователю',
                              reply_markup=menu_reply_keyboard())
 
 

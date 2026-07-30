@@ -380,12 +380,15 @@ def create_new_birthday_note_cf(data: dict) -> None:
         db_session.commit()
 
 
-def delete_birthday_note(id: int) -> None:
-    """Удаление записи о дне рождения."""
+def delete_birthday_note(id: int, telegram_id: int) -> None:
+    """Удаление записи о дне рождения.
+    Удалить можно только свою запись."""
     check = db_session.query(Birthday).filter(
         Birthday.id == id).all()
     if not check:
         raise ValueError('Нет такой записи')
+    if check[0].owner_id != telegram_id:
+        raise PermissionError('Запись принадлежит другому пользователю')
     db_session.delete(check[0])
     db_session.commit()
 
