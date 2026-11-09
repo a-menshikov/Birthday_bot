@@ -166,8 +166,15 @@ async def my_birthdays(message: types.Message):
     telegram_id = message.from_user.id
     notes = view_users_birthday_notes(telegram_id)
     if notes:
-        lines = [f'{note_id}.  {name},  {birth_date}'
-                 for note_id, name, birth_date in notes]
+        lines = ['Ближайшие сверху:\n']
+        for note_id, name, birth_date, days in notes:
+            if days == 0:
+                when = 'сегодня'
+            elif days == 1:
+                when = 'завтра'
+            else:
+                when = f'через {days} дн.'
+            lines.append(f'{note_id}.  {name},  {birth_date} — {when}')
         lines.append('\nЧтобы удалить запись отправь боту '
                      'сообщение формата "Удалить Х", где Х '
                      'номер записи в этом списке.')

@@ -9,6 +9,7 @@ from data.db_loader import db_session
 from data.sender import send_message_with_retry
 from data.services import (future_birthdays_schedule_sendler,
                            today_birthdays_schedule_sendler)
+from handlers.admin import admin_handlers
 from handlers.other import other_handlers
 from handlers.user import user_handlers
 from keyboards import time_1, time_2, time_3, time_4, time_5, time_6
@@ -70,6 +71,7 @@ async def on_handler_error(update, exception):
 
 
 user_handlers.register_user_handlers(dp)
+admin_handlers.register_admin_handlers(dp)
 other_handlers.register_other_handlers(dp)
 dp.register_errors_handler(on_handler_error)
 

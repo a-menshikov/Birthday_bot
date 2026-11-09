@@ -2,13 +2,14 @@ import calendar
 import csv
 import datetime
 import logging
+import os
 
 from aiogram.utils.exceptions import BotBlocked, UserDeactivated
 from config import (SUB_KIND, cf_sub, default_send_time, future_days,
                     private_sub, timezone)
 from keyboards import menu_reply_keyboard
 from loader import ADMIN, CF_GROUP
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.sql import exists
 
 from .db_loader import db_session
@@ -28,18 +29,17 @@ def is_user_exist_in_base(telegram_id: int) -> bool:
     return False
 
 
+CF_FILE_PATH = 'db/Ц.csv'
 CF_FILE_COLUMNS = ('Подразделение организации', 'Должность', 'Сотрудник',
                    'Дата рождения')
 
 
 async def check_c_birthdays_in_base():
     """Привести базу данных о ДР в Ц в соотвествие с файлом."""
-    path = 'db/Ц.csv'
-
     # без файла или с чужими столбцами список не трогаем: сверка ниже удалила
     # бы из базы всех, кого нет в файле
     try:
-        with open(path, encoding='1251', mode='r') as file:
+        with open(CF_FILE_PATH, encoding='1251', mode='r') as file:
             csv_read = csv.DictReader(file, delimiter=';')
             columns = csv_read.fieldnames or []
             rows = list(csv_read)
@@ -456,16 +456,32 @@ def delete_birthday_note(id: int, telegram_id: int) -> None:
     db_session.commit()
 
 
-def view_users_birthday_notes(telegram_id: int) -> None:
-    """Запрос из базы всех записей о ДР конкретного пользователя
-    Возвращает список кортежей."""
-    return db_session.query(
+def view_users_birthday_notes(telegram_id: int) -> list[tuple]:
+    """Записи пользователя (id, имя, дата, дней до ДР), ближайшие первыми."""
+    today = datetime.datetime.now(timezone).date()
+    notes = db_session.query(
         Birthday.id,
         Birthday.name,
-        Birthday.row_birth_date
-        ).where(
-            Birthday.owner_id == telegram_id
-            ).order_by(Birthday.id).all()
+        Birthday.row_birth_date,
+        Birthday.day_of_birth,
+        Birthday.month_of_birth,
+        ).where(Birthday.owner_id == telegram_id).all()
+    notes_with_days = [
+        (note_id, name, birth_date, days_until_birthday(day, month, today))
+        for note_id, name, birth_date, day, month in notes
+    ]
+    return sorted(notes_with_days, key=lambda note: (note[3], note[1]))
+
+
+def days_until_birthday(day: int, month: int, today: datetime.date) -> int:
+    """Дней до ближайшего ДР; 29.02 в невисокосный год — 28.02."""
+    for year in (today.year, today.year + 1):
+        if (month, day) == (2, 29) and not calendar.isleap(year):
+            birthday = datetime.date(year, 2, 28)
+        else:
+            birthday = datetime.date(year, month, day)
+        if birthday >= today:
+            return (birthday - today).days
 
 
 def split_by_lines(lines: list[str], limit: int = 4096) -> list[str]:
@@ -480,3 +496,37 @@ def split_by_lines(lines: list[str], limit: int = 4096) -> list[str]:
             current = f'{current}\n{line}' if current else line
     messages.append(current)
     return messages
+
+
+def collect_admin_stats() -> dict:
+    """Цифры для /stats из базы бота."""
+    users = [user_id for (user_id,) in get_all_users()]
+    subs = {user_id: all_sub_check(user_id) for user_id in users}
+    notes_by_user = dict(db_session.query(
+        Birthday.owner_id, func.count(Birthday.id)).group_by(
+            Birthday.owner_id).all())
+    # получает рассылку: есть подписка и по ней есть что присылать
+    receiving = [
+        user_id for user_id in users
+        if subs[user_id][cf_sub]
+        or (subs[user_id][private_sub] and notes_by_user.get(user_id))
+    ]
+    send_times = dict(db_session.query(
+        UserSendTime.time, func.count(UserSendTime.user_id)).group_by(
+            UserSendTime.time).all())
+    cf_file_date = None
+    if os.path.exists(CF_FILE_PATH):
+        cf_file_date = datetime.datetime.fromtimestamp(
+            os.path.getmtime(CF_FILE_PATH), timezone).date()
+    return {
+        'users': len(users),
+        'receiving': len(receiving),
+        'without_subs': [user_id for user_id in users
+                         if not any(subs[user_id].values())],
+        'notes': sum(notes_by_user.values()),
+        'note_owners': len(notes_by_user),
+        'send_times': send_times,
+        'cf_people': db_session.query(BirthdayCF).count(),
+        'cf_subscribers': sum(1 for user_id in users if subs[user_id][cf_sub]),
+        'cf_file_date': cf_file_date,
+    }
