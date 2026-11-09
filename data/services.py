@@ -4,12 +4,13 @@ import datetime
 from config import (SUB_KIND, cf_sub, default_send_time, future_days,
                     private_sub, timezone)
 from keyboards import menu_reply_keyboard
-from loader import ADMIN, CF_GROUP, bot
+from loader import ADMIN, CF_GROUP
 from sqlalchemy.sql import exists
 
 from .db_loader import db_session
 from .models import (Birthday, BirthdayCF, Subscribe, User, UserSendTime,
                      UserSubscribe)
+from .sender import send_message_with_retry
 
 
 def is_user_exist_in_base(telegram_id: int) -> bool:
@@ -74,10 +75,13 @@ async def check_c_birthdays_in_base():
             db_session.commit()
             del_count += 1
 
-        await bot.send_message(
-            ADMIN,
-            f'all ЦФ done, создано {post_counter}, удалено {del_count}',
-        )
+        try:
+            await send_message_with_retry(
+                ADMIN,
+                f'all ЦФ done, создано {post_counter}, удалено {del_count}',
+            )
+        except Exception:
+            pass  # причина уже в логе; без этого сообщения бот работает
 
 
 def is_admin(telegram_id: int):
@@ -268,8 +272,8 @@ async def today_birthdays_schedule_sendler(time: str):
         base_message, empty = make_today_bd_message(user_id)
         if not empty:
             try:
-                await bot.send_message(user_id, base_message,
-                                       reply_markup=menu_reply_keyboard())
+                await send_message_with_retry(
+                    user_id, base_message, reply_markup=menu_reply_keyboard())
             except Exception:
                 continue
 
@@ -284,8 +288,8 @@ async def future_birthdays_schedule_sendler(time: str):
         base_message, empty = make_future_bd_message(user_id)
         if not empty:
             try:
-                await bot.send_message(user_id, base_message,
-                                       reply_markup=menu_reply_keyboard())
+                await send_message_with_retry(
+                    user_id, base_message, reply_markup=menu_reply_keyboard())
             except Exception:
                 continue
 
