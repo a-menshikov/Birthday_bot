@@ -1,9 +1,11 @@
 import asyncio
+import logging
 
 import aioschedule
 from aiogram.utils import executor
 
 from data.create_db import create_db
+from data.db_loader import db_session
 from data.sender import send_message_with_retry
 from data.services import (future_birthdays_schedule_sendler,
                            today_birthdays_schedule_sendler)
@@ -11,6 +13,8 @@ from handlers.other import other_handlers
 from handlers.user import user_handlers
 from keyboards import time_1, time_2, time_3, time_4, time_5, time_6
 from loader import ADMIN, dp
+
+logger = logging.getLogger(__name__)
 
 
 async def on_startup(_):
@@ -26,6 +30,7 @@ async def on_startup(_):
 
 async def scheduler():
     """Расписание выполнения задач."""
+    # время в UTC (часовой пояс контейнера), подписи time_N — московские
     scheduler = aioschedule.Scheduler()
     scheduler.every().day.at("04:00").do(today_birthdays_schedule_sendler,
                                          time=time_1)
@@ -55,7 +60,17 @@ async def scheduler():
         await scheduler.run_pending()
         await asyncio.sleep(1)
 
+
+async def on_handler_error(update, exception):
+    """Сбой в обработчике: в лог и откат сеанса базы, он один на весь бот."""
+    logger.error(f'Сбой при обработке сообщения: {exception!r}',
+                 exc_info=exception)
+    db_session.rollback()
+    return True
+
+
 user_handlers.register_user_handlers(dp)
 other_handlers.register_other_handlers(dp)
+dp.register_errors_handler(on_handler_error)
 
 executor.start_polling(dp, skip_updates=True, on_startup=on_startup)

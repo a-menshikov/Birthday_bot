@@ -1,3 +1,5 @@
+import re
+
 from aiogram.types import (KeyboardButton, ReplyKeyboardMarkup,
                            ReplyKeyboardRemove)
 from config import future_days, SUB_BUTTON_NAME
@@ -10,14 +12,22 @@ in_main_menu = "В главное меню"
 today_birthday = "ДР сегодня"
 delete_button = "Удалить"
 time_setting = "Время рассылки"
+subscribes_button = "Подписки"
 future_birthday = f"Ближайшие {future_days} дня"
+subscribe_action = "подписаться"
+unsubscribe_action = "отписаться"
+# кнопки подписок вида «Персональная - отписаться»
+sub_button_regexp = (
+    f"^({'|'.join(re.escape(name) for name in SUB_BUTTON_NAME.values())})"
+    f" - ({subscribe_action}|{unsubscribe_action})$"
+)
 
 time_1 = "07:00"
 time_2 = "09:00"
 time_3 = "11:00"
 time_4 = "13:00"
 time_5 = "15:00"
-time_6 = "17:00"
+time_6 = "18:00"
 
 
 def remove_keyboard():
@@ -36,11 +46,9 @@ def reg_keyboard():
 def sub_keyboard(data: dict):
     """Клавиатура подписок."""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
-    for i in data.items():
-        button = f'{SUB_BUTTON_NAME[i[0]]} - подписаться'
-        if i[1]:
-            button = f'{SUB_BUTTON_NAME[i[0]]} - отписаться'
-        markup.add(KeyboardButton(button))
+    for sub_kind, subscribed in data.items():
+        action = unsubscribe_action if subscribed else subscribe_action
+        markup.add(KeyboardButton(f'{SUB_BUTTON_NAME[sub_kind]} - {action}'))
     markup.add(KeyboardButton(in_main_menu))
     return markup
 
@@ -58,6 +66,7 @@ def menu_reply_keyboard():
     )
     markup.row(
         KeyboardButton(time_setting),
+        KeyboardButton(subscribes_button),
     )
     return markup
 

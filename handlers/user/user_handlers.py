@@ -1,16 +1,19 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher, FSMContext
 
-from data.services import (all_sub_check, create_new_birthday_note,
+from config import SUB_BUTTON_NAME, SUB_KIND
+from data.services import (available_subscribes, create_new_birthday_note,
                            create_new_user, create_update_send_time,
                            delete_birthday_note, get_send_time,
                            is_user_exist_in_base, make_future_bd_message,
-                           make_today_bd_message, view_users_birthday_notes)
+                           make_today_bd_message, set_subscribe_status,
+                           split_by_lines, view_users_birthday_notes)
 from keyboards import (add_new_note, cancel_button, canсel_keyboard,
                        future_birthday, in_main_menu, menu_reply_keyboard,
                        my_birthdays_button, reg_button, reg_keyboard,
-                       sub_keyboard, time_1, time_2, time_3, time_4, time_5,
-                       time_6, time_reply_keyboard, time_setting,
+                       sub_button_regexp, sub_keyboard, subscribe_action,
+                       subscribes_button, time_1, time_2, time_3, time_4,
+                       time_5, time_6, time_reply_keyboard, time_setting,
                        today_birthday)
 from states.states import NewBirthdayStates
 
@@ -60,15 +63,45 @@ async def registration(message: types.Message):
 async def my_subscribes(message: types.Message):
     """Переход в меню подписок."""
     telegram_id = message.from_user.id
-    sub_status = all_sub_check(telegram_id)
-    await message.answer("Ваши подписки.",
+    if not is_user_exist_in_base(telegram_id):
+        await message.answer("Сначала зарегистрируйтесь.",
+                             reply_markup=reg_keyboard())
+        return
+    await answer_subscribes(message, "Ваши подписки:")
+
+
+async def switch_subscribe(message: types.Message):
+    """Включить или отключить подписку кнопкой «<подписка> - <действие>»."""
+    telegram_id = message.from_user.id
+    button_name, action = message.text.split(' - ')
+    sub_kind = next(kind for kind, name in SUB_BUTTON_NAME.items()
+                    if name == button_name)
+    if sub_kind not in available_subscribes(telegram_id):
+        await message.answer("Такой подписки нет.",
+                             reply_markup=menu_reply_keyboard())
+        return
+    subscribed = action == subscribe_action
+    set_subscribe_status(telegram_id, sub_kind, subscribed)
+    result = 'включена' if subscribed else 'отключена'
+    await answer_subscribes(message, f"Подписка «{button_name}» {result}.")
+
+
+async def answer_subscribes(message: types.Message, title: str):
+    """Список подписок со статусом и клавиатура переключения."""
+    sub_status = available_subscribes(message.from_user.id)
+    lines = [title]
+    for sub_kind, subscribed in sub_status.items():
+        state = 'включена' if subscribed else 'отключена'
+        lines.append(f"{SUB_BUTTON_NAME[sub_kind]} "
+                     f"({SUB_KIND[sub_kind]}) — {state}")
+    await message.answer('\n'.join(lines),
                          reply_markup=sub_keyboard(sub_status))
 
 
 async def new_birthday(message: types.Message):
     """Добавление новой записи о дне рождения."""
     await NewBirthdayStates.name.set()
-    await message.answer("Введиме имя. Лимит 200 символов.",
+    await message.answer("Введите имя. Лимит 200 символов.",
                          reply_markup=canсel_keyboard())
 
 
@@ -77,9 +110,9 @@ async def name_input(message: types.Message, state: FSMContext):
     name = message.text
     if not validate_name(name):
         await message.answer(
-            'Что то не так с введенным именем.\n'
-            'Имя должно состоять из цифр или '
-            'букв русского/латинского алфавитов '
+            'Что-то не так с введенным именем.\n'
+            'Имя может состоять из букв, цифр, пробелов, '
+            'дефиса, точки и апострофа '
             'и быть не более 200 символов.'
         )
         return
@@ -96,8 +129,8 @@ async def birth_date_input(message: types.Message, state: FSMContext):
     telegram_id = message.from_user.id
     if not validate_birthday(birthday):
         await message.answer(
-            'Что то не так с введенной датой.\n'
-            'Сообщение дожно быть в формате ДД.ММ '
+            'Что-то не так с введенной датой.\n'
+            'Сообщение должно быть в формате ДД.ММ '
             '(например 13.04 или 29.02) и быть реальной датой.'
         )
         return
@@ -133,13 +166,13 @@ async def my_birthdays(message: types.Message):
     telegram_id = message.from_user.id
     notes = view_users_birthday_notes(telegram_id)
     if notes:
-        text = ''
-        for i in notes:
-            text += f'{i[0]}.  {i[1]},  {i[2]} \n'
-        text += ('\n Чтобы удалить запись отправь боту '
-                 'сообщение формата "Удалить Х", где Х '
-                 'номер записи в этом списке.')
-        await message.answer(text)
+        lines = [f'{note_id}.  {name},  {birth_date}'
+                 for note_id, name, birth_date in notes]
+        lines.append('\nЧтобы удалить запись отправь боту '
+                     'сообщение формата "Удалить Х", где Х '
+                     'номер записи в этом списке.')
+        for text in split_by_lines(lines):
+            await message.answer(text)
     else:
         text = ('Список пустой')
         await message.answer(text,
@@ -189,13 +222,14 @@ async def set_time_send(message: types.Message):
 async def delete_bd_note(message: types.Message):
     """Удалить запись о др."""
     telegram_id = message.from_user.id
-    try:
-        note_id = int(message.text.split()[1])
-        delete_birthday_note(note_id, telegram_id)
-        await message.answer('Запись удалена',
-                             reply_markup=menu_reply_keyboard())
-    except IndexError:
+    parts = message.text.split()
+    if len(parts) != 2 or not parts[1].isdigit():
         await message.answer('Запрос не соответствует формату "Удалить Х"',
+                             reply_markup=menu_reply_keyboard())
+        return
+    try:
+        delete_birthday_note(int(parts[1]), telegram_id)
+        await message.answer('Запись удалена',
                              reply_markup=menu_reply_keyboard())
     except ValueError:
         await message.answer('Запись не существует',
@@ -213,6 +247,8 @@ def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(today_birthdays, text=today_birthday)
     dp.register_message_handler(future_birthdays, text=future_birthday)
     dp.register_message_handler(set_time_menu, text=time_setting)
+    dp.register_message_handler(my_subscribes, text=subscribes_button)
+    dp.register_message_handler(switch_subscribe, regexp=sub_button_regexp)
     dp.register_message_handler(set_time_send, text=[time_1, time_2,
                                                      time_3, time_4,
                                                      time_5, time_6])
